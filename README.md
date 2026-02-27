@@ -7,19 +7,30 @@ Unlike traditional synchronous processors, DocFlow ensures that long-running job
 ✨ Key Features
 
 🔄 Fully asynchronous, queue-driven pipeline
+
 🛡️ Crash-safe recovery with per-page checkpointing
+
 ♻️ Idempotent worker design
+
 📦 Automatic ZIP extraction
+
 🔍 OCR for scanned documents
+
 🧠 AI summarization pipeline
+
 🔢 Vector embedding generation
+
 🚨 Dead Letter Queue (DLQ) for corrupted files
+
 💓 Worker heartbeat monitoring
+
 📈 Horizontally scalable architecture
+
 🐳 Docker-first local development
 
 
 🏗️ High-Level Architecture
+
 User Upload
    ↓
 Object Storage (S3/MinIO)
