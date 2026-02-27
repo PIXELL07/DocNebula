@@ -2,6 +2,8 @@
 
 package config
 
+import "os"
+
 type Config struct {
 	PostgresDSN string
 	RedisAddr   string
@@ -20,4 +22,11 @@ func Load() Config {
 		MinioSecret: get("MINIO_ROOT_PASSWORD", "minioadmin"),
 		Bucket:      get("MINIO_BUCKET", "uploads"),
 	}
+}
+
+func get(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
 }
