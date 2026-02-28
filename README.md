@@ -43,7 +43,9 @@ Queue C → Vector Workers
    ↓
 PostgreSQL (state machine + metadata)
 
-🔄 Processing Flow
+---
+
+## 🔄 Processing Flow
 
 1. User uploads ZIP file
 
