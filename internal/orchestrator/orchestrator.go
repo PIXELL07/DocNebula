@@ -14,6 +14,6 @@ type Orchestrator struct{ Producer *queue.Producer }
 func (o *Orchestrator) StartJob(ctx context.Context, jobID string) error {
 	return o.Producer.Publish(ctx, "unzip_queue", queue.Message{
 		JobID: jobID,
-		TS:    time.Now(),
+		TS:    time.Now(), // fix the field name in the Message struct to match the JSON tag
 	})
 }
