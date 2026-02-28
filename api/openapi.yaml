@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: DocFlow API
+  version: 1.0.0
+  description: |
+    DocFlow is an asynchronous document processing pipeline.
+    This API allows clients to create jobs and check their status.
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /upload:
+    post:
+      summary: Create a new document processing job
+      operationId: createJob
+      tags: [Jobs]
+      responses:
+        '200':
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '500':
+          description: Internal server error
+
+  /jobs/{jobId}:
+    get:
+      summary: Get job status
+      operationId: getJob
+      tags: [Jobs]
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+
+components:
+  schemas:
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 7f3c2d8e-1234-4a8e-9c12-abcdef123456
+        status:
+          type: string
+          enum: [UPLOADED, RUNNING, COMPLETED, FAILED]
+          example: RUNNING
+        retry_count:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, status]
+
