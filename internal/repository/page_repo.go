@@ -1,5 +1,3 @@
-// high-level repository for tracking per-page OCR progress and text storage
-
 // how it works:
 // 1. When a file is created, we bulk-insert page records with "done=false" and page numbers.
 // 2. As each page is processed, we update the corresponding record to "done=true" and store the extracted text.
