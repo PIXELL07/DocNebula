@@ -30,7 +30,7 @@ func (r *JobRepo) Create(ctx context.Context, idemKey string) (*models.Job, erro
 		&job.ID,
 		&job.Status,
 		&job.RetryCount,
-		&job.Idempotency,
+		&job.IdempotencyKey,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 	)
@@ -65,12 +65,12 @@ func (r *JobRepo) Create(ctx context.Context, idemKey string) (*models.Job, erro
 	}
 
 	return &models.Job{
-		ID:          id,
-		Status:      models.JobUploaded,
-		RetryCount:  0,
-		Idempotency: idemKey,
-		CreatedAt:   createdAt.Time,
-		UpdatedAt:   updatedAt.Time,
+		ID:             id,
+		Status:         models.JobUploaded,
+		RetryCount:     0,
+		IdempotencyKey: idemKey,
+		CreatedAt:      createdAt.Time,
+		UpdatedAt:      updatedAt.Time,
 	}, nil
 }
 
@@ -84,7 +84,7 @@ func (r *JobRepo) Get(ctx context.Context, id string) (*models.Job, error) {
 		&job.ID,
 		&job.Status,
 		&job.RetryCount,
-		&job.Idempotency,
+		&job.IdempotencyKey,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 	)
