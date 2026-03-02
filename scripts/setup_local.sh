@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT="docflow"
+PROJECT="DocNebula"
 
 echo "🚀 Starting DocFlow local stack..."
 docker compose -f deployments/docker-compose.yml up -d
