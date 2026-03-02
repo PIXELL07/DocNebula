@@ -14,4 +14,4 @@ done
 echo "🗄 Running DB migrations..."
 bash scripts/migrate_db.sh
 
-echo "✅ Local environment ready."
+echo "Local environment ready."
