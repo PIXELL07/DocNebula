@@ -84,3 +84,11 @@ func main() {
 	logger.Info("api starting", "port", 8080)
 	http.ListenAndServe(":8080", nil)
 }
+
+// additional endpoints:
+// - GET /status?id=job_id -> job status
+// - GET /results?id=job_id -> job results (once ready)
+// - POST /retry?id=job_id -> trigger retry (for failed jobs)
+// - GET /metrics -> Prometheus metrics (job counts, latencies, etc)
+// - POST /cancel?id=job_id -> cancel a job (if still processing)
+// fix: handle graceful shutdown, close db and redis connections, etc.. in internal/http/health.go
