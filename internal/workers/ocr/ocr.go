@@ -5,29 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
+
+	"github.com/otiai10/gosseract/v2"
 )
 
-// Processor simulates OCR work.
+// Processor performs OCR using Tesseract.
 type Processor struct {
 	Logger *slog.Logger
-}
-
-// ProcessFile performs OCR on a single file.
-func (p *Processor) ProcessFile(ctx context.Context, filePath string) (string, error) {
-	p.Logger.Info("ocr started", "file", filePath)
-
-	select {
-	case <-ctx.Done():
-		return "", ctx.Err()
-	case <-time.After(700 * time.Millisecond):
-	}
-
-	// simulated extracted text
-	text := fmt.Sprintf("extracted text from %s", filePath)
-
-	p.Logger.Info("ocr completed", "file", filePath)
-	return text, nil
 }
 
 // NewProcessor creates OCR processor.
@@ -35,4 +19,30 @@ func NewProcessor() *Processor {
 	return &Processor{
 		Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}
+}
+
+// ProcessFile extracts text from an image/PDF page.
+func (p *Processor) ProcessFile(ctx context.Context, filePath string) (string, error) {
+	p.Logger.Info("ocr started", "file", filePath)
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
+
+	client := gosseract.NewClient()
+	defer client.Close()
+
+	if err := client.SetImage(filePath); err != nil {
+		return "", fmt.Errorf("set image failed: %w", err)
+	}
+
+	text, err := client.Text()
+	if err != nil {
+		return "", fmt.Errorf("tesseract failed: %w", err)
+	}
+
+	p.Logger.Info("ocr completed", "file", filePath)
+	return text, nil
 }
