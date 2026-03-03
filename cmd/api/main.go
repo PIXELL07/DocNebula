@@ -85,6 +85,8 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
+// Kubernetes / Docker can now probe these endpoints.
+
 // additional endpoints:
 // - GET /status?id=job_id -> job status
 // - GET /results?id=job_id -> job results (once ready)
