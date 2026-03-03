@@ -1,3 +1,8 @@
+// Old worker: cmd/ocr-worker
+// job → OCR whole file
+// in future, delete this file and move the logic to
+// cmd/ocr-page-worker/main.go, and use a single worker for all tasks
+
 package main
 
 import (
