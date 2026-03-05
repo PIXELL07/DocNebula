@@ -3,7 +3,6 @@ package http
 import (
 	"DocNebula/internal/repository"
 	"DocNebula/internal/utils"
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -14,53 +13,102 @@ type ResetHandler struct {
 	UserRepo *repository.UserRepo
 }
 
+type forgotReq struct {
+	Email string `json:"email"`
+}
+
+type resetReq struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
+
 func (h *ResetHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
-	var req struct {
-		Email string `json:"email"`
-	}
+	var req forgotReq
 
-	json.NewDecoder(r.Body).Decode(&req)
-
-	user, err := h.UserRepo.GetByEmail(context.Background(), req.Email)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	token, _ := utils.GenerateToken(user.ID)
+	if req.Email == "" {
+		http.Error(w, "email required", http.StatusBadRequest)
+		return
+	}
 
-	utils.SendResetEmail(user.Email, token)
+	user, err := h.UserRepo.GetByEmail(r.Context(), req.Email)
 
-	w.WriteHeader(http.StatusOK)
+	if err != nil || user == nil {
+		// don't reveal if email exists
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	token, err := utils.GenerateToken(user.ID)
+	if err != nil {
+		http.Error(w, "token generation failed", http.StatusInternalServerError)
+		return
+	}
+
+	err = utils.SendResetEmail(user.Email, token)
+	if err != nil {
+		http.Error(w, "email send failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "reset email sent",
+	})
 }
 
 func (h *ResetHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
-	var req struct {
-		Token    string `json:"token"`
-		Password string `json:"password"`
-	}
+	var req resetReq
 
-	json.NewDecoder(r.Body).Decode(&req)
-
-	userID, err := utils.VerifyResetToken(req.Token)
-	if err != nil {
-		http.Error(w, "invalid token", 400)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+	if req.Token == "" || req.Password == "" {
+		http.Error(w, "token and password required", http.StatusBadRequest)
+		return
+	}
 
-	_, err = h.UserRepo.DB.Exec(
+	if len(req.Password) < 6 {
+		http.Error(w, "password too short", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := utils.VerifyResetToken(req.Token)
+	if err != nil {
+		http.Error(w, "invalid token", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "password hashing failed", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.UserRepo.DB.ExecContext(
+		r.Context(),
 		`UPDATE users SET password_hash=$1 WHERE id=$2`,
 		hash,
 		userID,
 	)
 
 	if err != nil {
-		http.Error(w, "reset failed", 500)
+		http.Error(w, "reset failed", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "password updated",
+	})
 }
