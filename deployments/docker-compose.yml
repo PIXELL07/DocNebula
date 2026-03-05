@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: DocNebula-postgres
+    environment:
+      POSTGRES_USER: DocNebula
+      POSTGRES_PASSWORD: DocNebula
+      POSTGRES_DB: DocNebula
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: DocNebula-redis
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ..
+    container_name: DocNebula-api
+    command: ./api
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_DSN: postgres://DocNebula:DocNebula@postgres:5432/DocNebula?sslmode=disable
+    depends_on:
+      - postgres
+      - redis
+
+  unzip-worker:
+    build: ..
+    container_name: DocNebula-unzip-worker
+    command: ./unzip-worker
+    environment:
+      POSTGRES_DSN: postgres://DocNebula:DocNebula@postgres:5432/DocNebula?sslmode=disable
+    depends_on:
+      - redis
+      - postgres
+
+  ocr-worker:
+    build: ..
+    container_name: DocNebula-ocr-worker
+    command: ./ocr-worker
+    environment:
+      POSTGRES_DSN: postgres://DocNebula:DocNebula@postgres:5432/DocNebula?sslmode=disable
+    depends_on:
+      - redis
+      - postgres
+
+  vector-worker:
+    build: ..
+    container_name: DocNebula-vector-worker
+    command: ./vector-worker
+    environment:
+      POSTGRES_DSN: postgres://DocNebula:DocNebula@postgres:5432/DocNebula?sslmode=disable
+    depends_on:
+      - redis
+      - postgres
+
+volumes:
+  postgres_data:

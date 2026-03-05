@@ -1,0 +1,27 @@
+FROM golang:1.23-alpine AS builder
+ 
+    WORKDIR /app
+    
+    RUN apk add --no-cache git
+    
+    COPY go.mod go.sum ./
+    RUN go mod download
+    
+    COPY . .
+    
+    RUN go build -o api ./cmd/api
+    RUN go build -o unzip-worker ./cmd/unzip-worker
+    RUN go build -o ocr-worker ./cmd/ocr-worker
+    RUN go build -o vector-worker ./cmd/vector-worker
+    
+
+    FROM alpine:3.21
+    
+    WORKDIR /app
+    
+    COPY --from=builder /app/api .
+    COPY --from=builder /app/unzip-worker .
+    COPY --from=builder /app/ocr-worker .
+    COPY --from=builder /app/vector-worker .
+    
+    EXPOSE 8080
