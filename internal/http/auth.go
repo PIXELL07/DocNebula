@@ -3,8 +3,8 @@ package http
 import (
 	"DocNebula/internal/repository"
 	"DocNebula/internal/utils"
-	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -22,17 +22,44 @@ type authReq struct {
 func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	var req authReq
-	json.NewDecoder(r.Body).Decode(&req)
 
-	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
-
-	user, err := h.UserRepo.Create(context.Background(), req.Email, string(hash))
-	if err != nil {
-		http.Error(w, "signup failed", 500)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	token, _ := utils.GenerateToken(user.ID)
+	if req.Email == "" || req.Password == "" {
+		http.Error(w, "email and password required", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Password) < 6 {
+		http.Error(w, "password too short", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Println("bcrypt error:", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.UserRepo.Create(r.Context(), req.Email, string(hash))
+	if err != nil {
+		log.Println("signup error:", err)
+		http.Error(w, "signup failed", http.StatusInternalServerError)
+		return
+	}
+
+	token, err := utils.GenerateToken(user.ID)
+	if err != nil {
+		log.Println("token error:", err)
+		http.Error(w, "token generation failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": token,
@@ -42,11 +69,15 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var req authReq
-	json.NewDecoder(r.Body).Decode(&req)
 
-	user, err := h.UserRepo.GetByEmail(context.Background(), req.Email)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.UserRepo.GetByEmail(r.Context(), req.Email)
 	if err != nil {
-		http.Error(w, "invalid credentials", 401)
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
@@ -56,11 +87,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, "invalid credentials", 401)
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	token, _ := utils.GenerateToken(user.ID)
+	token, err := utils.GenerateToken(user.ID)
+	if err != nil {
+		log.Println("token error:", err)
+		http.Error(w, "token generation failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": token,
