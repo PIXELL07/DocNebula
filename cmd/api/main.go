@@ -1,6 +1,7 @@
 package main
 
 import (
+	httpx "DocNebula/internal/http"
 	"DocNebula/internal/queue"
 	"DocNebula/internal/repository"
 	"DocNebula/internal/utils"
@@ -35,6 +36,21 @@ func main() {
 
 	jobRepo := &repository.JobRepo{DB: pg}
 	producer := &queue.Producer{Client: rdb}
+
+	userRepo := &repository.UserRepo{DB: pg}
+
+	authHandler := &httpx.AuthHandler{
+		UserRepo: userRepo,
+	}
+
+	resetHandler := &httpx.ResetHandler{
+		UserRepo: userRepo,
+	}
+
+	http.HandleFunc("/signup", authHandler.Signup)
+	http.HandleFunc("/login", authHandler.Login)
+	http.HandleFunc("/forgot-password", resetHandler.ForgotPassword)
+	http.HandleFunc("/reset-password", resetHandler.ResetPassword)
 
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
