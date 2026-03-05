@@ -96,3 +96,20 @@ func (r *PageRepo) NextPending(ctx context.Context, fileID string) (*models.Page
 
 	return &p, nil
 }
+
+// AllDone checks if all pages for a file are processed: barrier check before triggering next stage.
+func (r *PageRepo) AllDone(ctx context.Context, fileID string) (bool, error) {
+	row := r.DB.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM pages
+			WHERE file_id=$1 AND done=false
+		)
+	`, fileID)
+
+	var hasPending bool
+	if err := row.Scan(&hasPending); err != nil {
+		return false, err
+	}
+
+	return !hasPending, nil
+}
