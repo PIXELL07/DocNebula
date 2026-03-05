@@ -18,27 +18,50 @@ import (
 )
 
 func main() {
+
 	ctx := context.Background()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	// Postgres
-	pg, err := sql.Open("postgres", os.Getenv("POSTGRES_DSN"))
-	if err != nil {
-		logger.Error("postgres connect failed", "err", err)
+	// PostgreSQL
+	dsn := os.Getenv("POSTGRES_DSN")
+	if dsn == "" {
+		logger.Error("POSTGRES_DSN not set")
 		os.Exit(1)
 	}
 
+	pg, err := sql.Open("postgres", dsn)
+	if err != nil {
+		logger.Error("postgres open failed", "err", err)
+		os.Exit(1)
+	}
+
+	if err := pg.Ping(); err != nil {
+		logger.Error("postgres ping failed", "err", err)
+		os.Exit(1)
+	}
+
+	logger.Info("postgres connected")
+
 	// Redis
 	rdb := redis.NewClient(&redis.Options{
-		Addr: "redis:6379",
+		Addr: os.Getenv("REDIS_ADDR"),
 	})
 
-	jobRepo := &repository.JobRepo{DB: pg}
-	producer := &queue.Producer{Client: rdb}
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		logger.Error("redis connection failed", "err", err)
+		os.Exit(1)
+	}
 
+	logger.Info("redis connected")
+
+	// Repositories
+	jobRepo := &repository.JobRepo{DB: pg}
 	userRepo := &repository.UserRepo{DB: pg}
 
+	producer := &queue.Producer{Client: rdb}
+
+	// http handlers
 	authHandler := &httpx.AuthHandler{
 		UserRepo: userRepo,
 	}
@@ -49,10 +72,13 @@ func main() {
 
 	http.HandleFunc("/signup", authHandler.Signup)
 	http.HandleFunc("/login", authHandler.Login)
+
 	http.HandleFunc("/forgot-password", resetHandler.ForgotPassword)
 	http.HandleFunc("/reset-password", resetHandler.ResetPassword)
 
+	// Upload endpoint
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+
 		start := time.Now()
 
 		idemKey := utils.FromHeaderOrRequest(r)
@@ -83,6 +109,7 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Idempotency-Key", idemKey)
+
 		json.NewEncoder(w).Encode(job)
 
 		logger.Info("upload processed",
@@ -91,14 +118,17 @@ func main() {
 		)
 	})
 
-	// health
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+	// Health endpoint
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		w.Write([]byte("DocNebula API running"))
 	})
 
-	logger.Info("api starting", "port", 8080)
-	http.ListenAndServe(":8080", nil)
+	logger.Info("api starting", "port", 9000)
+
+	if err := http.ListenAndServe(":9000", nil); err != nil {
+		logger.Error("server failed", "err", err)
+	}
 }
 
 // Kubernetes / Docker can now probe these endpoints.
