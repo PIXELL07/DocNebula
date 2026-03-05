@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/lib/pq v1.11.2
 	github.com/redis/go-redis/v9 v9.18.0
+	golang.org/x/crypto v0.46.0
 )
 
 require (
@@ -19,10 +20,10 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
